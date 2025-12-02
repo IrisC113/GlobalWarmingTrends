@@ -21,9 +21,29 @@
     </header>
 
     <div class="slider-box">
-      <label for="time-slider">Current time:</label>
-      <span id="current-time-display">Loading...</span>
-      <input type="range" id="time-slider" min="0" max="0" value="0">
+      <!-- 上层：控制按钮区 -->
+      <div class="controls-header">
+        <button id="play-btn" class="play-button">
+          <span class="icon">▶</span> Play
+        </button>
+        
+        <div class="toggle-wrapper">
+          <span class="toggle-label">Anomaly Mode</span>
+          <label class="switch">
+            <input type="checkbox" id="anomaly-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+  
+      <!-- 下层：时间滑条区 -->
+      <div class="slider-container">
+        <div class="time-info">
+          <label for="time-slider">Time:</label>
+          <span id="current-time-display">Loading...</span>
+        </div>
+        <input type="range" id="time-slider" min="0" max="0" value="0">
+      </div>
     </div>
 
     <main class="layout">

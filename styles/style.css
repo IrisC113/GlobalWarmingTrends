@@ -11,6 +11,7 @@ body {
   flex-direction: column;
 }
 
+/* --- Header & Footer --- */
 .page-header,
 .page-footer {
   padding: 1.5rem clamp(1.5rem, 4vw, 3rem);
@@ -34,35 +35,148 @@ body {
   font-size: 0.9rem;
 }
 
+/* --- NEW: Improved Slider Box & Controls --- */
 .slider-box {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 30px;
+  margin: 24px auto; /* 上下边距 */
+  width: 90%;
+  max-width: 600px; /* 限制最大宽度，从而缩短滑条 */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column; /* 垂直排列：上按钮，下滑条 */
+  gap: 15px;
+}
+
+/* 顶部控制栏：包含 Play 和 Anomaly 开关 */
+.controls-header {
+  display: flex;
+  justify-content: space-between; /* 关键：让两边的按钮离得远一点 */
+  align-items: center;
+  width: 100%;
+}
+
+/* Play 按钮美化 */
+.play-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 30px; /* 胶囊形状 */
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 1rem clamp(1.5rem, 4vw, 3rem);
-  background: #f1f5f9;
-  margin: 0;
+  gap: 8px;
 }
 
-.slider-box label {
-  font-weight: 500;
-  color: #334155;
+.play-button:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.6);
 }
 
-.slider-box #current-time-display {
-  font-family: 'Consolas', 'Monaco', monospace;
+.play-button:active {
+  transform: translateY(0);
+}
+
+/* Anomaly 开关容器美化 */
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: #f1f5f9;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: 6px 16px;
+  border-radius: 30px;
+  border: 1px solid #e2e8f0;
+}
+
+.toggle-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Toggle Switch 本身 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .3s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: #ef4444; /* 开启变为红色 */
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* 下部滑条区域 */
+.slider-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.time-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+#current-time-display {
+  font-family: 'Consolas', monospace;
   color: #0f172a;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-.slider-box input[type="range"] {
-  flex: 1;
-  min-width: 200px;
-  max-width: 400px;
+/* Input Range 美化 */
+input[type="range"]#time-slider {
+  -webkit-appearance: none;
+  width: 100%;
   height: 6px;
   background: #e2e8f0;
   border-radius: 3px;
@@ -70,29 +184,24 @@ body {
   cursor: pointer;
 }
 
-.slider-box input[type="range"]::-webkit-slider-thumb {
+input[type="range"]#time-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   background: #3b82f6;
+  border: 2px solid #ffffff;
   border-radius: 50%;
   cursor: pointer;
-  transition: background 150ms ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 0 1px #3b82f6;
+  transition: transform 0.1s;
 }
 
-.slider-box input[type="range"]::-webkit-slider-thumb:hover {
+input[type="range"]#time-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
   background: #2563eb;
 }
 
-.slider-box input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: #3b82f6;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
+/* --- Layout & Map --- */
 .layout {
   flex: 1;
   display: flex;
@@ -126,7 +235,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: 0;
-  background-color: #a8d8ea;
+  /* background-color: #a8d8ea; canvas 覆盖后不需要这个背景色了，不过留着也无妨 */
 }
 
 #overlay-layer {
@@ -138,6 +247,7 @@ body {
   z-index: 1;
 }
 
+/* --- Info Panel --- */
 .info-panel {
   background: #ffffff;
   border-radius: 12px;
@@ -165,9 +275,11 @@ body {
   padding-left: 0.75rem;
   display: flex;
   justify-content: space-between;
+  align-items: center; /* 垂直居中对齐 */
   font-size: 0.95rem;
 }
 
+/* --- Tooltip & Legend --- */
 .tooltip {
   position: absolute;
   pointer-events: none;
@@ -181,6 +293,10 @@ body {
   opacity: 0;
   transition: opacity 120ms ease;
   z-index: 999;
+}
+
+.tooltip.is-visible {
+  opacity: 1;
 }
 
 .legend {
@@ -206,6 +322,7 @@ body {
   stroke: rgba(15, 23, 42, 0.25);
 }
 
+/* --- Country Interactions --- */
 .country {
   fill: #f5f5f5;
   fill-opacity: 1;
@@ -235,10 +352,7 @@ body {
   pointer-events: none;
 }
 
-.tooltip.is-visible {
-  opacity: 1;
-}
-
+/* --- Responsive & Misc --- */
 @media (max-width: 960px) {
   .layout {
     flex-direction: column;
