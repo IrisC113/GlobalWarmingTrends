@@ -35,79 +35,127 @@ body {
   font-size: 0.9rem;
 }
 
-/* --- NEW: Improved Slider Box & Controls --- */
+/* --- Slider Box & Controls (One Line Layout) --- */
 .slider-box {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 20px 30px;
-  margin: 24px auto; /* 上下边距 */
-  width: 90%;
-  max-width: 600px; /* 限制最大宽度，从而缩短滑条 */
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border-radius: 50px; /* 变成全圆角，像一个大的胶囊控制条 */
+  padding: 10px 20px;
+  margin: 20px auto;
+  width: 95%;
+  max-width: 900px; /* 整体宽度可以宽一点，容纳一行 */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  /* 关键布局：Flex Row */
   display: flex;
-  flex-direction: column; /* 垂直排列：上按钮，下滑条 */
-  gap: 15px;
-}
-
-/* 顶部控制栏：包含 Play 和 Anomaly 开关 */
-.controls-header {
-  display: flex;
-  justify-content: space-between; /* 关键：让两边的按钮离得远一点 */
   align-items: center;
-  width: 100%;
+  justify-content: space-between;
+  gap: 20px; /* 控件之间的间距 */
+  flex-wrap: wrap; /* 小屏幕允许换行 */
 }
 
-/* Play 按钮美化 */
+/* 1. 左侧 Play 按钮 */
 .play-button {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
-  padding: 8px 24px;
-  border-radius: 30px; /* 胶囊形状 */
-  font-size: 0.95rem;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  white-space: nowrap; /* 防止文字换行 */
+  flex-shrink: 0; /* 防止按钮被压缩 */
 }
 
 .play-button:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.5);
 }
 
 .play-button:active {
   transform: translateY(0);
 }
 
-/* Anomaly 开关容器美化 */
+/* 2. 中间滑条组 (时间 + 滑条) */
+.slider-group {
+  flex: 1; /* 占据剩余空间 */
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  max-width: 500px; /* 限制滑条区域最大宽度，满足“缩短滑条”的需求 */
+  margin: 0 auto; /* 居中 */
+}
+
+#current-time-display {
+  font-family: 'Consolas', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  min-width: 90px; /* 固定最小宽度，防止数字跳动导致布局抖动 */
+  text-align: center;
+}
+
+input[type="range"]#time-slider {
+  -webkit-appearance: none;
+  flex: 1; /* 填满 slider-group 的剩余空间 */
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]#time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #3b82f6;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.1s;
+}
+
+input[type="range"]#time-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #2563eb;
+}
+
+/* 3. 右侧 Anomaly 开关 */
 .toggle-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: #f1f5f9;
-  padding: 6px 16px;
+  gap: 10px;
+  background: #f8fafc;
+  padding: 5px 12px;
   border-radius: 30px;
   border: 1px solid #e2e8f0;
+  flex-shrink: 0; /* 防止被压缩 */
 }
 
 .toggle-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
+  white-space: nowrap;
 }
 
-/* Toggle Switch 本身 */
 .switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 40px;
+  height: 22px;
 }
 
 .switch input { 
@@ -131,74 +179,43 @@ body {
 .slider:before {
   position: absolute;
   content: "";
-  height: 18px;
-  width: 18px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
   background-color: white;
   transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 input:checked + .slider {
-  background-color: #ef4444; /* 开启变为红色 */
+  background-color: #ef4444;
 }
 
 input:checked + .slider:before {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
-/* 下部滑条区域 */
-.slider-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.time-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 600;
-}
-
-#current-time-display {
-  font-family: 'Consolas', monospace;
-  color: #0f172a;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-/* Input Range 美化 */
-input[type="range"]#time-slider {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-}
-
-input[type="range"]#time-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  background: #3b82f6;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 0 1px #3b82f6;
-  transition: transform 0.1s;
-}
-
-input[type="range"]#time-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  background: #2563eb;
+/* 响应式适配：手机上可能需要折行 */
+@media (max-width: 650px) {
+  .slider-box {
+    justify-content: center;
+    border-radius: 20px;
+  }
+  .slider-group {
+    order: 3; /* 把滑条放到最后一行 */
+    min-width: 100%;
+    margin-top: 10px;
+  }
+  .play-button {
+    flex: 1;
+    justify-content: center;
+  }
+  .toggle-wrapper {
+    flex: 1;
+    justify-content: center;
+  }
 }
 
 /* --- Layout & Map --- */

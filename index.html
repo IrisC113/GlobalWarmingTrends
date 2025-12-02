@@ -21,31 +21,26 @@
     </header>
 
     <div class="slider-box">
-      <!-- 上层：控制按钮区 -->
-      <div class="controls-header">
-        <button id="play-btn" class="play-button">
-          <span class="icon">▶</span> Play
-        </button>
-        
-        <div class="toggle-wrapper">
-          <span class="toggle-label">Anomaly Mode</span>
-          <label class="switch">
-            <input type="checkbox" id="anomaly-toggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
-      </div>
+    <!-- 左侧：播放按钮 -->
+    <button id="play-btn" class="play-button">
+      <span class="icon">▶</span> <span class="text">Play</span>
+    </button>
   
-      <!-- 下层：时间滑条区 -->
-      <div class="slider-container">
-        <div class="time-info">
-          <label for="time-slider">Time:</label>
-          <span id="current-time-display">Loading...</span>
-        </div>
-        <input type="range" id="time-slider" min="0" max="0" value="0">
-      </div>
+    <!-- 中间：滑条和时间显示 -->
+    <div class="slider-group">
+      <span id="current-time-display">Loading...</span>
+      <input type="range" id="time-slider" min="0" max="0" value="0">
     </div>
-
+  
+    <!-- 右侧：异常模式开关 -->
+    <div class="toggle-wrapper">
+      <span class="toggle-label">Anomaly</span>
+      <label class="switch">
+        <input type="checkbox" id="anomaly-toggle">
+        <span class="slider round"></span>
+      </label>
+    </div>
+  </div>
     <main class="layout">
       <section class="map-wrapper">
         <div id="map"></div>

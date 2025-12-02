@@ -12,6 +12,8 @@ const projection = d3
   .translate([MAP_WIDTH / 2, MAP_HEIGHT / 2]);
 
 const geoPath = d3.geoPath(projection);
+// Date parser for data format "YYYY-MM-DD HH:mm:ss"
+const dateParser = d3.timeParse("%Y-%m-%d %H:%M:%S");
 
 // --- State Variables ---
 const revealedCountries = new Set();
@@ -20,6 +22,7 @@ let tooltip, overlayLayer, heatmapSvg;
 // Data Storage
 let allTemperatureData = null; // { "2015-01...": [240, ...], ... }
 let screenCoords = [];         // [{x,y}, ...] Pre-calculated screen positions
+let rawCoords = [];            // [[lon, lat], ...] Global raw coords for geo-calc
 let timePoints = [];
 let baselineData = {};         // { "01": [...], "02": [...] } 2015 baseline
 
@@ -49,7 +52,7 @@ async function init() {
     const countries = topojson.feature(worldTopo, worldTopo.objects.countries);
     renderCountries(countries);
     
-    // 3. Setup Legend (needs to happen before data load for updates)
+    // 3. Setup Legend
     setupLegend();
 
     // 4. Load Data
@@ -76,7 +79,6 @@ async function loadTemperatureData() {
     const buffer = await response.arrayBuffer();
     const zip = await JSZip.loadAsync(buffer);
     
-    // Try to find the file (compatible with both names)
     const jsonFile = zip.file("temperature_data.json") || zip.file("optimized_data.json");
     if (!jsonFile) throw new Error("JSON data not found in zip");
     
@@ -84,9 +86,10 @@ async function loadTemperatureData() {
     const jsonString = await jsonFile.async("string");
     const parsedData = JSON.parse(jsonString);
 
-    // 1. Process Coordinates (Pre-calculate Projection)
-    // This optimization is crucial for performance
-    const rawCoords = parsedData.coords; 
+    // 1. Process Coordinates
+    // Store raw coords globally for "Point-in-Polygon" calc
+    rawCoords = parsedData.coords; 
+    // Pre-calculate screen coords for fast rendering
     screenCoords = rawCoords.map(d => {
       const p = projection(d);
       return p ? { x: p[0], y: p[1] } : null;
@@ -98,18 +101,14 @@ async function loadTemperatureData() {
 
     // 3. Extract Baseline Data (2015) for Anomaly Mode
     timePoints.forEach(dateStr => {
-      // Assuming format "YYYY-MM-DD..."
       if (dateStr.startsWith("2015")) {
-        // Extract month "01", "02", etc.
         const parts = dateStr.split('-');
         if (parts.length > 1) {
           const month = parts[1];
-          // Store the array for this month
           baselineData[month] = allTemperatureData[dateStr];
         }
       }
     });
-    console.log(`Baseline data extracted for ${Object.keys(baselineData).length} months.`);
 
     // 4. Setup Controls
     setupControls();
@@ -153,7 +152,7 @@ function renderHeatmap(timeIndex) {
         if (baseVal !== undefined && baseVal !== null) {
           val = val - baseVal;
         } else {
-          val = 0; // Default if no baseline
+          val = 0; 
         }
       }
       
@@ -167,7 +166,7 @@ function renderHeatmap(timeIndex) {
 
   // D3 Update Pattern
   const circles = heatmapSvg.selectAll(".data-point")
-    .data(renderData); // No key needed, index order is stable
+    .data(renderData); 
 
   circles.exit().remove();
 
@@ -181,30 +180,30 @@ function renderHeatmap(timeIndex) {
     .attr("cx", d => d.x)
     .attr("cy", d => d.y)
     .attr("fill", d => currentColorScale(d.val));
+    
+  // --- SYNC CHARTS ---
+  // Update the dot position on all sidebar charts
+  updateChartsSync(timeIndex);
 }
 
 // --- Interactions ---
 
 function setupControls() {
-  // 1. Slider
   const slider = document.getElementById('time-slider');
   slider.max = timePoints.length - 1;
   slider.value = 0;
   slider.disabled = false;
   
   slider.addEventListener('input', function() {
-    if (isPlaying) togglePlay(); // Pause if user drags
-    // Use requestAnimationFrame for smoother dragging
+    if (isPlaying) togglePlay(); 
     window.requestAnimationFrame(() => renderHeatmap(+this.value));
   });
 
-  // 2. Play Button
   const playBtn = document.getElementById('play-btn');
   if (playBtn) {
     playBtn.addEventListener('click', togglePlay);
   }
 
-  // 3. Anomaly Toggle
   const anomalyToggle = document.getElementById('anomaly-toggle');
   if (anomalyToggle) {
     anomalyToggle.addEventListener('change', function() {
@@ -216,13 +215,14 @@ function setupControls() {
 function togglePlay() {
   const btn = document.getElementById('play-btn');
   const slider = document.getElementById('time-slider');
-  
+  const btnText = btn.querySelector('.text') || btn; // Compatible with icon structure
+
   if (isPlaying) {
     clearInterval(animationInterval);
-    if (btn) btn.textContent = "▶ Play";
+    if (btnText) btnText.textContent = "Play";
     isPlaying = false;
   } else {
-    if (btn) btn.textContent = "⏸ Pause";
+    if (btnText) btnText.textContent = "Pause";
     isPlaying = true;
     
     animationInterval = setInterval(() => {
@@ -232,7 +232,7 @@ function togglePlay() {
       }
       slider.value = nextVal;
       renderHeatmap(nextVal);
-    }, 150); // 150ms per frame
+    }, 150); 
   }
 }
 
@@ -242,7 +242,18 @@ function toggleAnomalyMode(enabled) {
   
   updateLegend();
   
-  // Re-render current frame
+  // Refresh all existing charts in the sidebar to match new mode
+  const listItems = document.querySelectorAll('.selection-list__item');
+  listItems.forEach(item => {
+    // If we stored the feature data, we can redraw
+    if (item.featureData) {
+      const container = item.querySelector('.chart-container');
+      container.innerHTML = ''; // Clear old chart
+      const trendData = calculateCountryTrend(item.featureData);
+      drawDetailedChart(container, trendData, item.dataset.countryId);
+    }
+  });
+
   const slider = document.getElementById('time-slider');
   renderHeatmap(+slider.value);
 }
@@ -266,7 +277,6 @@ function setupLayers() {
 function renderCountries(countries) {
   const defs = overlayLayer.append('defs');
   
-  // Mask logic
   const mask = defs.append('mask').attr('id', 'ocean-mask');
   mask.append('path').datum({ type: 'Sphere' })
     .attr('d', geoPath).attr('fill', 'white');
@@ -276,7 +286,6 @@ function renderCountries(countries) {
     .attr('class', 'country-mask')
     .attr('d', geoPath).attr('fill', 'black');
   
-  // Ocean Background
   overlayLayer.append('path')
     .datum({ type: 'Sphere' })
     .attr('class', 'ocean-background')
@@ -285,7 +294,6 @@ function renderCountries(countries) {
     .style('fill', '#a8d8ea')
     .style('pointer-events', 'none');
   
-  // Interactive Country Layer
   const countryMasks = overlayLayer.append('g').attr('class', 'country-masks');
   countryMasks.selectAll('path.country')
     .data(countries.features).join('path')
@@ -295,7 +303,6 @@ function renderCountries(countries) {
     .on('mouseleave', handleMouseLeave)
     .on('click', handleClick);
   
-  // Borders
   overlayLayer.append('g').attr('class', 'country-borders')
     .selectAll('path.country-border')
     .data(countries.features).join('path')
@@ -350,17 +357,13 @@ function updateLegend() {
   const gradient = ctx.createLinearGradient(0, 0, 200, 0);
   
   if (isAnomalyMode) {
-    // Anomaly: Blue (-5) -> White (0) -> Red (+5)
     const stops = 10;
     for (let i = 0; i <= stops; i++) {
         const t = i / stops;
-        // RdBu: 1=Blue, 0=Red. We want Left=Blue, Right=Red.
-        // So at t=0 (Left), we want color RdBu(1).
         gradient.addColorStop(t, d3.interpolateRdBu(1 - t)); 
     }
     labelDiv.innerHTML = '<span>-5°C (Cooler)</span><span>+5°C (Warmer)</span>';
   } else {
-    // Absolute: Inferno
     const infernoColors = [
       { stop: 0, color: '#000004' },
       { stop: 0.25, color: '#57106e' },
@@ -385,7 +388,7 @@ function handleMouseEnter(event, feature) {
   const countryName = getCountryName(feature);
   
   let content = `<strong>${countryName}</strong><br/>`;
-  content += isAnomalyMode ? "Click to toggle mask" : "Click to toggle mask";
+  content += "Click to reveal trends";
 
   tooltip.style('opacity', 1).html(content);
 
@@ -414,25 +417,205 @@ function handleClick(event, feature) {
   } else {
     revealedCountries.add(countryId);
     element.classed('country--revealed', true);
-    addToSelectionList(countryId, countryName);
+    addToSelectionList(countryId, countryName, feature);
   }
   
   updateBorderStyle(countryId, revealedCountries.has(countryId));
 }
 
-// --- Sidebar Helpers ---
+// --- Sidebar & Chart Logic ---
 
-function addToSelectionList(id, name) {
+function addToSelectionList(id, name, feature) {
   const list = document.getElementById('selection-list');
   const item = document.createElement('li');
   item.className = 'selection-list__item';
   item.dataset.countryId = id;
-  item.innerHTML = `
-    <span>${name}</span>
+  // Store feature data on the DOM element for mode switching
+  item.featureData = feature; 
+  
+  item.style.flexDirection = "column";
+  item.style.alignItems = "stretch";
+  
+  // Header
+  const header = document.createElement('div');
+  header.style.display = "flex";
+  header.style.justifyContent = "space-between";
+  header.style.alignItems = "center";
+  header.innerHTML = `
+    <span style="font-weight:600; font-size:0.9rem;">${name}</span>
     <button onclick="removeCountry('${id}')" style="background:none;border:none;cursor:pointer;color:#ef4444;">✕</button>
   `;
+  item.appendChild(header);
+
+  // Chart Container
+  const chartContainer = document.createElement('div');
+  chartContainer.className = 'chart-container'; 
+  chartContainer.style.height = "100px"; 
+  chartContainer.style.width = "100%";
+  chartContainer.style.marginTop = "5px";
+  chartContainer.innerHTML = '<span style="font-size:0.7rem;color:#999;">Calculating...</span>';
+  item.appendChild(chartContainer);
+  
   list.appendChild(item);
+
+  // Calculate & Draw
+  setTimeout(() => {
+    const trendData = calculateCountryTrend(feature);
+    if (trendData && trendData.length > 0) {
+        chartContainer.innerHTML = ''; 
+        drawDetailedChart(chartContainer, trendData, id);
+        
+        // Sync immediately
+        const slider = document.getElementById('time-slider');
+        updateChartsSync(+slider.value); 
+    } else {
+        chartContainer.innerHTML = '<span style="font-size:0.7rem;color:#ef4444;">No data</span>';
+    }
+  }, 50);
 }
+
+// 1. Calculate Trend (Point-in-Polygon)
+function calculateCountryTrend(feature) {
+  if (!rawCoords || rawCoords.length === 0) return null;
+
+  const indicesInCountry = [];
+  for (let i = 0; i < rawCoords.length; i++) {
+    const coord = rawCoords[i];
+    if (d3.geoContains(feature, coord)) {
+      indicesInCountry.push(i);
+    }
+  }
+
+  if (indicesInCountry.length === 0) return null;
+
+  return timePoints.map(dateStr => {
+    const temps = allTemperatureData[dateStr];
+    
+    // Anomaly calc
+    let baselineTemps = null;
+    if (isAnomalyMode) {
+        const month = dateStr.split('-')[1];
+        baselineTemps = baselineData[month];
+    }
+
+    let sum = 0;
+    let count = 0;
+
+    indicesInCountry.forEach(idx => {
+      let val = temps[idx];
+      if (isAnomalyMode && baselineTemps) {
+         val = val - baselineTemps[idx];
+      }
+      sum += val;
+      count++;
+    });
+
+    return {
+      date: dateParser(dateStr), 
+      val: count > 0 ? sum / count : 0,
+      rawDate: dateStr
+    };
+  });
+}
+
+// 2. Draw D3 Chart with Axes & Sync Marker
+function drawDetailedChart(container, data, countryId) {
+  const width = container.clientWidth || 250;
+  const height = 100;
+  const margin = {top: 10, right: 10, bottom: 20, left: 35};
+
+  const svg = d3.select(container)
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  // Scales
+  const x = d3.scaleTime()
+    .domain(d3.extent(data, d => d.date))
+    .range([margin.left, width - margin.right]);
+
+  const y = d3.scaleLinear()
+    .domain(d3.extent(data, d => d.val))
+    .range([height - margin.bottom, margin.top]);
+
+  // Axes
+  svg.append("g")
+    .attr("transform", `translate(0,${height - margin.bottom})`)
+    .call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%Y")).tickSizeOuter(0))
+    .attr("color", "#64748b")
+    .style("font-size", "9px");
+
+  svg.append("g")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y).ticks(4))
+    .attr("color", "#64748b")
+    .style("font-size", "9px");
+    
+  svg.append("text")
+    .attr("x", 2)
+    .attr("y", 10)
+    .style("font-size", "9px")
+    .style("fill", "#64748b")
+    .text(isAnomalyMode ? "°C" : "K");
+
+  // Line
+  const line = d3.line()
+    .x(d => x(d.date))
+    .y(d => y(d.val))
+    .curve(d3.curveMonotoneX);
+
+  svg.append("path")
+    .datum(data)
+    .attr("fill", "none")
+    .attr("stroke", isAnomalyMode ? "#ef4444" : "#3b82f6")
+    .attr("stroke-width", 1.5)
+    .attr("d", line);
+
+  // Sync Marker Group (Hidden initially)
+  const markerGroup = svg.append("g")
+    .attr("class", "sync-marker-group")
+    .attr("id", `marker-${countryId}`)
+    .style("display", "none");
+
+  // Halo
+  markerGroup.append("circle")
+    .attr("r", 6)
+    .attr("fill", isAnomalyMode ? "rgba(239, 68, 68, 0.3)" : "rgba(59, 130, 246, 0.3)");
+
+  // Dot
+  markerGroup.append("circle")
+    .attr("r", 3.5)
+    .attr("fill", isAnomalyMode ? "#ef4444" : "#3b82f6")
+    .attr("stroke", "white")
+    .attr("stroke-width", 1.5);
+    
+  // Attach metadata to DOM for sync function
+  container.chartMeta = { x, y, data };
+}
+
+// 3. Sync Logic (Called by renderHeatmap)
+function updateChartsSync(timeIndex) {
+  const containers = document.querySelectorAll('.chart-container');
+  
+  containers.forEach(container => {
+    const meta = container.chartMeta;
+    if (!meta) return;
+
+    const { x, y, data } = meta;
+    const currentPoint = data[timeIndex];
+
+    if (currentPoint) {
+      const svg = d3.select(container).select('svg');
+      const marker = svg.select('.sync-marker-group');
+
+      marker
+        .style("display", "block")
+        .attr("transform", `translate(${x(currentPoint.date)}, ${y(currentPoint.val)})`);
+    }
+  });
+}
+
+// --- Helpers ---
 
 function removeFromSelectionList(id) {
   const item = document.querySelector(`li[data-country-id="${id}"]`);
@@ -463,8 +646,6 @@ window.removeCountry = function(id) {
   updateBorderStyle(id, false);
   removeFromSelectionList(id);
 };
-
-// --- Utilities ---
 
 function setupTooltip() {
   tooltip = d3.select('body').append('div')
