@@ -30,6 +30,17 @@ let baselineData = {};         // { "01": [...], "02": [...] } 2015 baseline
 let isPlaying = false;
 let animationInterval = null;
 let isAnomalyMode = false;
+let currentTransform = d3.zoomIdentity;
+let zoomBehavior;
+
+//Zoom
+function zoomed({ transform }) {
+  currentTransform = transform; 
+
+  overlayLayer.attr("transform", transform);
+
+  heatmapSvg.attr("transform", transform);
+}
 
 // Color Scales
 // Absolute: 230K (-43C) to 310K (37C)
@@ -44,7 +55,7 @@ let currentColorScale = absoluteColorScale;
 async function init() {
   try {
     // 1. Setup UI
-    setupLayers();
+    const zoomListenerElement = setupLayers(); 
     setupTooltip();
     
     // 2. Load Geometry
@@ -58,12 +69,25 @@ async function init() {
     // 4. Load Data
     await loadTemperatureData();
     
+    // 5. Zoom
+    setupZoom(zoomListenerElement); 
+
+    //
+    document.getElementById('zoom-in').addEventListener('click', () => {
+      handleZoom('in');
+    });
+
+    document.getElementById('zoom-out').addEventListener('click', () => {
+      handleZoom('out');
+    });
+    
     console.log('Map initialized successfully');
   } catch (err) {
     console.error('Failed to initialize map:', err);
     document.getElementById('map').innerHTML = 
       '<p style="color: red; padding: 2rem;">Failed to load map data.</p>';
   }
+
 }
 
 // --- Data Loading ---
@@ -261,17 +285,25 @@ function toggleAnomalyMode(enabled) {
 // --- Layers & Geometry ---
 
 function setupLayers() {
-  heatmapSvg = d3.select('#map').append('svg')
-    .attr('id', 'heatmap-svg')
+
+  const heatmapContainer = d3.select('#map').append('svg')
+    .attr('id', 'heatmap-container')
+    .attr('viewBox', `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`)
+    .style('position', 'absolute')
+    .style('top', 0).style('left', 0);
+  
+  heatmapSvg = heatmapContainer.append('g').attr('id', 'heatmap-content-group'); 
+    
+  const overlayContainer = d3.select('#map').append('svg')
+    .attr('id', 'overlay-container')
     .attr('viewBox', `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`)
     .style('position', 'absolute')
     .style('top', 0).style('left', 0);
 
-  overlayLayer = d3.select('#map').append('svg')
-    .attr('id', 'overlay-layer')
-    .attr('viewBox', `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`)
-    .style('position', 'absolute')
-    .style('top', 0).style('left', 0);
+  overlayLayer = overlayContainer.append('g').attr('id', 'overlay-content-group');
+  
+  return overlayContainer;
+
 }
 
 function renderCountries(countries) {
@@ -347,6 +379,26 @@ function setupLegend() {
   updateLegend();
 }
 
+//Zoom
+function setupZoom(container) {
+  zoomBehavior = d3.zoom() 
+    .scaleExtent([1, 8])
+    .on("zoom", zoomed);
+
+  container.call(zoomBehavior);
+}
+
+function handleZoom(direction) {
+  const container = d3.select('#overlay-container'); 
+  
+  if (direction === 'in') {
+    container.transition().duration(250).call(zoomBehavior.scaleBy, 1.2);
+  } else if (direction === 'out') {
+    container.transition().duration(250).call(zoomBehavior.scaleBy, 1 / 1.2);
+  }
+}
+
+//
 function updateLegend() {
   const canvas = document.getElementById('legend-canvas');
   if (!canvas) return;
@@ -589,8 +641,18 @@ function drawDetailedChart(container, data, countryId) {
     .attr("stroke", "white")
     .attr("stroke-width", 1.5);
     
+
+  //tamperture text
+  markerGroup.append("text")
+    .attr("class", "sync-temp-label")
+    .attr("y", 15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "10px")
+    .style("font-weight", "600")
+    .style("fill", "#1e3a8a");
+
   // Attach metadata to DOM for sync function
-  container.chartMeta = { x, y, data };
+  container.chartMeta = { x, y, data};
 }
 
 // 3. Sync Logic (Called by renderHeatmap)
@@ -611,6 +673,14 @@ function updateChartsSync(timeIndex) {
       marker
         .style("display", "block")
         .attr("transform", `translate(${x(currentPoint.date)}, ${y(currentPoint.val)})`);
+
+      const tempValue = currentPoint.val.toFixed(2);
+      const unit = isAnomalyMode ? "°C" : "K";
+      const dateStr = d3.timeFormat("%b %Y")(currentPoint.date);
+
+      //update tamperture
+      marker.select(".sync-temp-label")
+        .text(`${tempValue} ${unit}`);
     }
   });
 }

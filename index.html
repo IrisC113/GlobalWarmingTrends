@@ -16,9 +16,19 @@
 
       <div class="team-info">
         <strong>Team:</strong> TerraScope |
-        <strong>Members:</strong> XinYi Zeng, ShuJia Chen, WeiYu Chen, Qi Zhang
+        <strong>Members:</strong>
+        <a href="mailto:zengxinyi04@gmail.com">Xinyi Zeng</a>
+        <a href="mailto:shc085@ucsd.edu">Shujia Chen</a>,
+        <a href="mailto:wec003@ucsd.edu">Weiyu Chen</a>,
+        <a href="mailto:qz001@ucsd.edu">Qi Zhang</a>,
       </div>
     </header>
+
+    <div class="Overview">
+      <h2>Overview</h2>
+      <p>This project aims to provide an in-depth analysis and visualization of global surface temperature trends from 2015 to 2030 through a highly interactive map. By leveraging authoritative climate model data, we transform complex scientific information into an intuitive, dynamic visual experience, enabling users to effortlessly explore regional variations in global warming.</p>
+      </ol>
+    </div>
 
     <div class="slider-box">
     <!-- 左侧：播放按钮 -->
@@ -40,15 +50,71 @@
         <span class="slider round"></span>
       </label>
     </div>
-  </div>
-    <main class="layout">
-      <section class="map-wrapper">
-        <div id="map"></div>
-      </section>
-      <aside class="info-panel">
-        <h2>Selected Countries/Regions</h2>
-        <ul id="selection-list" class="selection-list"></ul>
-      </aside>
-    </main>
+    </div>
+      <main class="layout">
+        <section class="map-wrapper">
+          <div id="map"></div>
+          <div class="zoom-controls">
+              <button id="zoom-in" title="zoom in">+</button>
+              <button id="zoom-out" title="zoom out">−</button>
+          </div>
+        </section>
+        <aside class="info-panel">
+          <h2>Selected Countries/Regions</h2>
+          <ul id="selection-list" class="selection-list"></ul>
+        </aside>
+      </main>
+
+    <div class="Features-and-Exploration">
+        <h2>Features and Exploration</h2>
+        <p>This visualization tool offers multi-dimensional analytical perspectives to help users understand the complexity of global warming:</p>
+
+        <section>
+            <h3>1. Interactive Map Navigation (Zoom & Pan)</h3>
+            <p>
+                Users can seamlessly explore regional details using standard mouse interactions (scroll wheel to zoom, click and drag to pan). 
+                **This function is fully synchronized:** both the geographical boundaries and the temperature data points scale together, allowing for detailed, high-resolution analysis of localized warming trends.
+            </p>
+            
+            <h3>2. Dynamic Time Series Playback</h3>
+            <p>Using the play/pause button and time slider below the map, you can view the dynamic changes in global temperatures over time, year by year or month by month, to intuitively grasp the pace and scale of climate change.</p>
+
+            <h3>3. Temperature Switching</h3>
+            <ul>
+                <li>
+                    <strong>Raw Temperature:</strong> Display actual monthly surface temperature data to aid in understanding absolute temperature levels across different regions.
+                </li>
+                <li>
+                    <strong>Anomaly Mode:</strong> After switching the toggle, the map will display the deviation of the current temperature from the baseline year (2015). This mode is key to understanding climate warming trends, highlighting which regions are warming the fastest and most significantly.
+                </li>
+            </ul>
+
+            <h3>4. Regional Variation Analysis</h3>
+            <ul>
+                <li>
+                    <strong>Heatmap Coloring:</strong> The map's color intensity represents temperature levels (or anomaly magnitude), clearly showing regions (such as the Arctic and inland areas) where warming may be occurring faster than the global average.
+                </li>
+                <li>
+                    <strong>Country Selection Feature:</strong> Users can click on countries on the map to reveal and highlight them from the “mask.” Selected countries are added to the right-hand list, facilitating focused comparison and observation of long-term changes in specific regions.
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Technology and Data Sources</h2>
+            <ul>
+                <li>
+                    <strong>Data:</strong> Surface air temperature data used in this project spans from 2015 to 2030 and is presented as global grid data, ensuring high-resolution regional detail.
+                </li>
+                <li>
+                    <strong>Visualization Core:</strong> We employed the powerful D3.js library to construct map and heatmap layers. D3.js's flexibility and performance guarantee smooth playback of time series and precise data presentation.
+                </li>
+                <li>
+                    <strong>Interaction Technology:</strong> Combining HTML/CSS with native JavaScript, we implemented all interactive features including dynamic slider controls, mode switching, country interactions, and instant mouse-over tooltips.
+                </li>
+            </ul>
+        </section>
+
+    </div>
   </body>
 </html>
