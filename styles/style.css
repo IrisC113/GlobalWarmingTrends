@@ -592,12 +592,78 @@ input:checked + .slider:before {
   line-height: 1;
 }
 
-/* 主要数值稍微大一点 */
 .primary .stat-value {
   font-size: 0.8rem;
 }
 
-/* 季节数值稍微小一点 */
 .secondary .stat-value {
   font-size: 0.8rem;
+}
+
+/* --- Info Icon & Tooltip Styling --- */
+
+/* 小图标样式 */
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: #94a3b8; /* 灰色背景 */
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: help;
+  position: relative; /* 关键：作为绝对定位的参考点 */
+}
+
+.info-icon:hover {
+  background-color: #64748b; /* 悬浮时变深 */
+}
+
+/* 提示框文本样式 (默认隐藏) */
+.info-tooltip {
+  visibility: hidden;
+  width: 220px;
+  background-color: #1e293b; /* 深色背景 */
+  color: #f8fafc;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 10px;
+  
+  /* 定位逻辑 */
+  position: absolute;
+  z-index: 100;
+  bottom: 135%; /* 在图标上方显示 */
+  left: 50%;
+  transform: translateX(-50%); /* 水平居中 */
+  
+  /* 字体与动画 */
+  font-size: 0.75rem;
+  font-weight: normal;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity 0.2s, bottom 0.2s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  pointer-events: none; /* 防止鼠标误触提示框 */
+}
+
+/* 提示框的小箭头 */
+.info-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%; /* 在提示框底部 */
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+}
+
+/* 鼠标悬浮时显示 */
+.info-icon:hover .info-tooltip {
+  visibility: visible;
+  opacity: 1;
+  bottom: 125%; /* 轻微的上浮动画效果 */
 }

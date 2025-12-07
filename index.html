@@ -43,12 +43,20 @@
 
     <!-- 右侧：异常模式开关 -->
     <div class="toggle-wrapper">
-      <span class="toggle-label">Anomaly</span>
+      <div class="label-group" style="display: flex; align-items: center; gap: 6px;">
+        <span class="toggle-label">Anomaly</span>
+        <!-- 新增：提示图标和悬浮文本 -->
+        <span class="info-icon">?
+          <span class="info-tooltip">Difference between current temperature and the 2015 baseline for the same month.</span>
+        </span>
+      </div>
+      
       <label class="switch">
         <input type="checkbox" id="anomaly-toggle">
         <span class="slider round"></span>
       </label>
     </div>
+
     </div>
       <main class="layout">
         <section class="map-wrapper">
